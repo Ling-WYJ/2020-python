@@ -1,0 +1,42 @@
+#华师大网站的图片
+import urllib.request
+from bs4 import BeautifulSoup
+import os
+
+picDir="实验华师大之图片" #当前目录下的图片目录
+os.makedirs(picDir,exist_ok=True) #创建专用目录存放图片，忽略目录已存在异常的发生
+limit=5 #图片数量上限
+reTryLimit=3 #尝试下载次数上限
+url='http://www.ecnu.edu.cn'
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.146 Safari/537.36'}
+request = urllib.request.Request(url=url,headers=headers)
+htmlpage = urllib.request.urlopen(request)
+bs = BeautifulSoup(htmlpage,'html.parser')
+images =bs.find_all('img',src=True,limit=limit)#获得所有img图片标签
+successfulCount=0 #成功下载文件个数计数器
+for i,image in enumerate(images,1):
+    reTryCount=0 #重试次数计数器
+    trueAddress=image['src']
+    #只针对jpg、png、gif图片下载
+    ext=trueAddress[trueAddress.rfind('.'):] #扩展名
+    if ext not in ('.jpg','.png','.gif'):continue #指定三种图像文件
+    trueAddress=url+trueAddress #获得图像文件的网络绝对路径
+    print(trueAddress,'下载中……')
+    while reTryCount<reTryLimit: #重试下载
+        #此处为简单粗暴的异常处理。如需控制超时可以勉强使用reporthook，也可以使用urlopen(超时)+read(字节数)循环下载
+        #在真正下载时（使用read方法）也可以基本实现超时控制
+        try:
+            localFileName,headers=urllib.request.urlretrieve(trueAddress,
+                filename=os.path.join(picDir,"华师大%02d%s"%(i,ext))) #下载一个图像文件
+        except: #网络不稳定错误
+            reTryCount+=1
+            print('重试第 %d 次！'%reTryCount)
+            continue
+        else:
+            successfulCount+=1
+            print(localFileName,'已下载！')
+            break
+    else:print('下载失败！')
+
+print('%d 个图片文件成功下载！'%successfulCount)
+htmlpage.close()
