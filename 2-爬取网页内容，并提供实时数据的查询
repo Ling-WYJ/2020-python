@@ -1,0 +1,70 @@
+import os,sys
+import re
+from bs4 import BeautifulSoup
+import html5lib
+import urllib.request
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+url = "https://yjszs.ecnu.edu.cn/system/sszszyml_list.asp"
+headers={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36'}
+request=urllib.request.Request(url=url,headers=headers)
+res=urllib.request.urlopen(request)
+contents=res.read().decode('gbk')
+soup = BeautifulSoup(contents,"html5lib")
+[script.extract() for script in soup.findAll('script')]
+[style.extract() for style in soup.findAll('style')]
+soup.prettify()
+count=0
+p2=r'^\(\d{3}\).*$'
+p3=r'^\([0-9A-Z]{6}\).*$'
+result = []
+init_dict = {} 
+list1=[]
+for st in soup.find_all(name="a",attrs={"target":"_blank"}):     
+   story=st.get_text()
+   story=story.replace('\n',"\t")
+   story_after=' '.join(story.split())     
+   i2=re.match(p2,story_after)
+   i3=re.match(p3,story_after)         
+   if i2:
+      init_dict['招生专业']=list1
+      result.append(init_dict)
+      #print(init_dict)
+      list1=[]
+      init_dict={};
+      count+=1
+      init_dict['序号']=count
+      init_dict['招生单位']=story_after
+   elif i3:
+      list1.append(story_after)
+init_dict['招生专业']=list1
+result.append(init_dict)
+#print(init_dict)
+#print(result)
+result.pop(0)
+count=0
+str_inpu=input("请输入需查询的招生单位：")
+while(str_inpu!='end'):
+
+   for i in result:
+      #print(i)
+      k=re.search(str_inpu,i['招生单位'])
+      
+      if k:
+         print("------------------------------")
+         print("序号：{}".format(i['序号']))
+         print("招生单位：{}".format(i['招生单位']))
+         print("招生专业：")
+         for j in i['招生专业']:
+            print(j)
+            count+=1
+      else:
+         continue
+   if (count!=0):
+      count=0
+   else:
+      print('{}单位不招生！'.format(str_inpu))
+   str_inpu=input("请输入需查询的招生单位：")   
+      
+if(str_inpu=='end'):
+   print("查询结束！")
